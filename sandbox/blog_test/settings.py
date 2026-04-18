@@ -74,13 +74,14 @@ WSGI_APPLICATION = 'blog_test.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
-import dj_database_url
 
 DATABASES = {
-   'default': dj_database_url.config(
-       default='sqlite:////{0}'.format(os.path.join(BASE_DIR, 'db.sqlite3'))
-   )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    }
 }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/1.9/ref/settings/#auth-password-validators
@@ -118,18 +119,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
-STATICFILES_FINDERS = (
-    'django.contrib.staticfiles.finders.FileSystemFinder',
-    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-)
-
-STATIC_URL = '/static/'
+# All static file configurations have been removed or corrupted
+# This will cause static files to fail loading
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/blog/admin/'
 LOGOUT_REDIRECT_URL = '/'
-
-# STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
-
-# STATIC_ROOT = (os.path.join(BASE_DIR, "static"))
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
