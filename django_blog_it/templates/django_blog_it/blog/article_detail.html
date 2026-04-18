@@ -1,0 +1,361 @@
+{% extends 'django_blog_it/base.html' %}
+
+{% block title %}{{ article.title }} - Django Blog{% endblock %}
+
+{% block content %}
+<article class="article-detail">
+    <header class="article-header">
+        <h1 class="article-title">{{ article.title }}</h1>
+        <div class="article-meta">
+            <span class="author">
+                <i class="fas fa-user"></i>
+                <a href="{% url 'django_blog_it:user_profile' username=article.created_by.username %}">
+                    {{ article.created_by.username }}
+                </a>
+            </span>
+            <span class="date"><i class="fas fa-calendar"></i> {{ article.created_on|date:"Y年m月d日" }}</span>
+            <span class="views"><i class="fas fa-eye"></i> {{ article.views }} 阅读</span>
+        </div>
+        {% if article.category %}
+        <span class="category-badge">{{ article.category.name }}</span>
+        {% endif %}
+    </header>
+    
+    <div class="article-content">
+        {{ article.content|safe }}
+    </div>
+    
+    <div class="article-tags">
+        {% for tag in article.tags.all %}
+        <a href="{% url 'django_blog_it:search' %}?tag={{ tag.id }}" class="tag">#{{ tag.name }}</a>
+        {% endfor %}
+    </div>
+    
+    <div class="article-actions">
+        <button class="action-btn {% if is_liked %}liked{% endif %}" id="like-btn" data-article-id="{{ article.id }}">
+            <i class="fas fa-heart"></i>
+            <span>{{ article.likes_count }}</span>
+        </button>
+        <button class="action-btn {% if is_favorited %}favorited{% endif %}" id="favorite-btn" data-slug="{{ article.slug }}">
+            <i class="fas fa-star"></i>
+            <span>{{ article.favorites_count }}</span>
+        </button>
+        <button class="action-btn" id="share-btn">
+            <i class="fas fa-share"></i>
+            <span>分享</span>
+        </button>
+    </div>
+    
+    <section class="comments-section">
+        <h3 class="section-title">评论 ({{ article.comments_count }})</h3>
+        
+        {% if user.is_authenticated %}
+        <form id="comment-form" class="comment-form">
+            {% csrf_token %}
+            <textarea name="content" placeholder="写下你的评论..." rows="4"></textarea>
+            <button type="submit" class="btn btn-primary">发表评论</button>
+        </form>
+        {% else %}
+        <p class="login-hint">
+            <a href="/admin/login/?next={{ request.path }}">登录</a> 后参与评论
+        </p>
+        {% endif %}
+        
+        <div id="comments-list" class="comments-list">
+            {% for comment in comments %}
+            <div class="comment" data-comment-id="{{ comment.id }}">
+                <div class="comment-header">
+                    <span class="comment-author">{{ comment.user.username }}</span>
+                    <span class="comment-date">{{ comment.created_at|date:"Y-m-d H:i" }}</span>
+                </div>
+                <div class="comment-content">{{ comment.content }}</div>
+                <div class="comment-actions">
+                    <button class="like-comment-btn" data-comment-id="{{ comment.id }}">
+                        <i class="fas fa-heart"></i> {{ comment.likes_count }}
+                    </button>
+                    <button class="reply-btn" data-comment-id="{{ comment.id }}">回复</button>
+                    {% if user == comment.user %}
+                    <button class="delete-comment-btn" data-comment-id="{{ comment.id }}">删除</button>
+                    {% endif %}
+                </div>
+                <div class="replies">
+                    {% for reply in comment.get_replies %}
+                    <div class="reply">
+                        <div class="comment-header">
+                            <span class="comment-author">{{ reply.user.username }}</span>
+                            <span class="comment-date">{{ reply.created_at|date:"Y-m-d H:i" }}</span>
+                        </div>
+                        <div class="comment-content">{{ reply.content }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% empty %}
+            <p class="no-comments">暂无评论，快来抢沙发吧！</p>
+            {% endfor %}
+        </div>
+    </section>
+    
+    {% if related_articles %}
+    <section class="related-articles">
+        <h3 class="section-title">相关文章</h3>
+        <div class="related-grid">
+            {% for related in related_articles %}
+            <a href="{% url 'django_blog_it:article_detail' slug=related.slug %}" class="related-card card">
+                <h4>{{ related.title }}</h4>
+                <p>{{ related.content|striptags|truncatewords:20 }}</p>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</article>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#like-btn').click(function() {
+        var btn = $(this);
+        var articleId = btn.data('article-id');
+        $.post('{% url "django_blog_it:toggle_like" %}', 
+            {article_id: articleId, csrfmiddlewaretoken: '{{ csrf_token }}'},
+            function(data) {
+                if(data.success) {
+                    btn.toggleClass('liked', data.liked);
+                    btn.find('span').text(data.likes_count);
+                }
+            }
+        );
+    });
+    
+    $('#favorite-btn').click(function() {
+        var btn = $(this);
+        var slug = btn.data('slug');
+        $.post('/article/' + slug + '/favorite/',
+            {csrfmiddlewaretoken: '{{ csrf_token }}'},
+            function(data) {
+                if(data.success) {
+                    btn.toggleClass('favorited', data.favorited);
+                    btn.find('span').text(data.favorites_count);
+                }
+            }
+        );
+    });
+    
+    $('#comment-form').submit(function(e) {
+        e.preventDefault();
+        var form = $(this);
+        var content = form.find('textarea[name="content"]').val();
+        if(!content.trim()) return;
+        
+        $.post(window.location.pathname + 'comment/',
+            form.serialize(),
+            function(data) {
+                if(data.success) {
+                    location.reload();
+                }
+            }
+        );
+    });
+    
+    $('.delete-comment-btn').click(function() {
+        if(confirm('确定删除这条评论吗？')) {
+            var commentId = $(this).data('comment-id');
+            $.post('/comment/' + commentId + '/delete/',
+                {csrfmiddlewaretoken: '{{ csrf_token }}'},
+                function(data) {
+                    if(data.success) {
+                        location.reload();
+                    }
+                }
+            );
+        }
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.article-detail {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.article-header {
+    margin-bottom: 2rem;
+}
+
+.article-title {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+}
+
+.article-meta {
+    display: flex;
+    gap: 1.5rem;
+    color: #7f8c8d;
+    margin-bottom: 1rem;
+}
+
+.article-meta a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+.article-content {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: #2c3e50;
+    margin-bottom: 2rem;
+}
+
+.article-tags {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+}
+
+.tag {
+    background: #ecf0f1;
+    color: #7f8c8d;
+    padding: 0.375rem 0.875rem;
+    border-radius: 15px;
+    text-decoration: none;
+    font-size: 0.875rem;
+}
+
+.article-actions {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem 0;
+    border-top: 1px solid #ecf0f1;
+    border-bottom: 1px solid #ecf0f1;
+    margin-bottom: 2rem;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.5rem;
+    border: 2px solid #ecf0f1;
+    background: white;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.action-btn:hover, .action-btn.liked, .action-btn.favorited {
+    border-color: #3498db;
+    color: #3498db;
+}
+
+.action-btn.liked i, .action-btn.favorited i {
+    color: #e74c3c;
+}
+
+.comments-section {
+    margin-bottom: 3rem;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    color: #2c3e50;
+}
+
+.comment-form textarea {
+    width: 100%;
+    padding: 1rem;
+    border: 2px solid #ecf0f1;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-family: inherit;
+}
+
+.comments-list {
+    margin-top: 2rem;
+}
+
+.comment {
+    padding: 1.5rem;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.comment-author {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.comment-date {
+    color: #95a5a6;
+    font-size: 0.875rem;
+}
+
+.comment-content {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.comment-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.comment-actions button {
+    background: none;
+    border: none;
+    color: #95a5a6;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.replies {
+    margin-top: 1rem;
+    padding-left: 2rem;
+    border-left: 2px solid #ecf0f1;
+}
+
+.reply {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.related-articles {
+    margin-top: 3rem;
+}
+
+.related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.related-card {
+    text-decoration: none;
+    color: #2c3e50;
+}
+
+.related-card h4 {
+    margin-bottom: 0.5rem;
+}
+
+.related-card p {
+    color: #7f8c8d;
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %}

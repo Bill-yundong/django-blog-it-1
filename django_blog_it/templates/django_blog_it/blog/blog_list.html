@@ -1,0 +1,325 @@
+{% extends 'django_blog_it/base.html' %}
+
+{% block title %}首页 - Django Blog{% endblock %}
+
+{% block content %}
+<div class="home-layout">
+    <div class="main-content">
+        <div class="articles-section">
+            <h2 class="section-title">最新文章</h2>
+            
+            {% if articles %}
+                <div class="articles-grid">
+                    {% for article in articles %}
+                    <article class="article-card card">
+                        <div class="article-header">
+                            <div class="article-meta">
+                                <span class="author">
+                                    <i class="fas fa-user"></i> {{ article.created_by.username }}
+                                </span>
+                                <span class="date">
+                                    <i class="fas fa-calendar"></i> {{ article.created_on|date:"Y年m月d日" }}
+                                </span>
+                            </div>
+                            {% if article.category %}
+                            <span class="category-badge">{{ article.category.name }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <h3 class="article-title">
+                            <a href="{% url 'django_blog_it:article_detail' slug=article.slug %}">
+                                {{ article.title }}
+                            </a>
+                        </h3>
+                        
+                        <p class="article-excerpt">
+                            {{ article.content|striptags|truncatewords:40 }}
+                        </p>
+                        
+                        <div class="article-footer">
+                            <div class="article-stats">
+                                <span><i class="fas fa-eye"></i> {{ article.views }}</span>
+                                <span><i class="fas fa-heart"></i> {{ article.likes_count }}</span>
+                                <span><i class="fas fa-comment"></i> {{ article.comments_count }}</span>
+                            </div>
+                            <a href="{% url 'django_blog_it:article_detail' slug=article.slug %}" class="read-more">
+                                阅读更多 <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-file-alt"></i>
+                    <p>暂无文章</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <aside class="sidebar">
+        <div class="sidebar-section card">
+            <h3 class="sidebar-title">热门文章</h3>
+            <ul class="popular-list">
+                {% for article in popular_articles %}
+                <li>
+                    <a href="{% url 'django_blog_it:article_detail' slug=article.slug %}">
+                        <span class="rank">{{ forloop.counter }}</span>
+                        {{ article.title }}
+                    </a>
+                    <span class="views"><i class="fas fa-eye"></i> {{ article.views }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <div class="sidebar-section card">
+            <h3 class="sidebar-title">分类</h3>
+            <ul class="category-list">
+                {% for category in categories %}
+                <li>
+                    <a href="{% url 'django_blog_it:search' %}?category={{ category.id }}">
+                        {{ category.name }}
+                        <span class="count">{{ category.article_count }}</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <div class="sidebar-section card">
+            <h3 class="sidebar-title">标签云</h3>
+            <div class="tag-cloud">
+                {% for tag in tags %}
+                <a href="{% url 'django_blog_it:search' %}?tag={{ tag.id }}" class="tag">
+                    {{ tag.name }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </aside>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .home-layout {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 2rem;
+    }
+    
+    .section-title {
+        font-size: 1.75rem;
+        margin-bottom: 1.5rem;
+        color: #2c3e50;
+    }
+    
+    .articles-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .article-card {
+        padding: 1.5rem;
+    }
+    
+    .article-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .article-meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.875rem;
+        color: #7f8c8d;
+    }
+    
+    .category-badge {
+        background: #e3f2fd;
+        color: #1976d2;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .article-title {
+        font-size: 1.5rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .article-title a {
+        color: #2c3e50;
+        text-decoration: none;
+        transition: color 0.3s;
+    }
+    
+    .article-title a:hover {
+        color: #3498db;
+    }
+    
+    .article-excerpt {
+        color: #7f8c8d;
+        margin-bottom: 1rem;
+        line-height: 1.8;
+    }
+    
+    .article-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 1rem;
+        border-top: 1px solid #ecf0f1;
+    }
+    
+    .article-stats {
+        display: flex;
+        gap: 1rem;
+        color: #95a5a6;
+        font-size: 0.875rem;
+    }
+    
+    .read-more {
+        color: #3498db;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s;
+    }
+    
+    .read-more:hover {
+        color: #2980b9;
+    }
+    
+    .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .sidebar-title {
+        font-size: 1.125rem;
+        margin-bottom: 1rem;
+        color: #2c3e50;
+    }
+    
+    .popular-list {
+        list-style: none;
+    }
+    
+    .popular-list li {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #ecf0f1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .popular-list li:last-child {
+        border-bottom: none;
+    }
+    
+    .popular-list a {
+        text-decoration: none;
+        color: #2c3e50;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .rank {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        background: #3498db;
+        color: white;
+        border-radius: 50%;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .views {
+        color: #95a5a6;
+        font-size: 0.875rem;
+    }
+    
+    .category-list {
+        list-style: none;
+    }
+    
+    .category-list li {
+        padding: 0.5rem 0;
+    }
+    
+    .category-list a {
+        text-decoration: none;
+        color: #2c3e50;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: color 0.3s;
+    }
+    
+    .category-list a:hover {
+        color: #3498db;
+    }
+    
+    .count {
+        background: #ecf0f1;
+        padding: 0.125rem 0.5rem;
+        border-radius: 10px;
+        font-size: 0.75rem;
+    }
+    
+    .tag-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .tag {
+        background: #ecf0f1;
+        color: #7f8c8d;
+        padding: 0.375rem 0.875rem;
+        border-radius: 15px;
+        text-decoration: none;
+        font-size: 0.875rem;
+        transition: all 0.3s;
+    }
+    
+    .tag:hover {
+        background: #3498db;
+        color: white;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #95a5a6;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    @media (max-width: 968px) {
+        .home-layout {
+            grid-template-columns: 1fr;
+        }
+        
+        .sidebar {
+            order: -1;
+        }
+    }
+</style>
+{% endblock %}

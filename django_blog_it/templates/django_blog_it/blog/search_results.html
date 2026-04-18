@@ -1,0 +1,161 @@
+{% extends 'django_blog_it/base.html' %}
+
+{% block title %}搜索结果 - Django Blog{% endblock %}
+
+{% block content %}
+<div class="search-page">
+    <div class="search-header">
+        <h1>搜索文章</h1>
+        <form action="{% url 'django_blog_it:search' %}" method="get" class="search-form">
+            <input type="text" name="q" value="{{ query }}" placeholder="搜索文章标题、内容或关键词...">
+            <button type="submit" class="btn btn-primary">搜索</button>
+        </form>
+    </div>
+    
+    <div class="filters">
+        <select name="category" onchange="this.form.submit()">
+            <option value="">所有分类</option>
+            {% for category in categories %}
+            <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                {{ category.name }}
+            </option>
+            {% endfor %}
+        </select>
+        
+        <select name="tag" onchange="this.form.submit()">
+            <option value="">所有标签</option>
+            {% for tag in tags %}
+            <option value="{{ tag.id }}" {% if selected_tag == tag.id|stringformat:"s" %}selected{% endif %}>
+                {{ tag.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    {% if query or selected_category or selected_tag %}
+    <div class="search-results">
+        <p class="results-count">找到 {{ articles.count }} 篇文章</p>
+        
+        {% for article in articles %}
+        <article class="article-card card">
+            <h3 class="article-title">
+                <a href="{% url 'django_blog_it:article_detail' slug=article.slug %}">
+                    {{ article.title }}
+                </a>
+            </h3>
+            <p class="article-excerpt">{{ article.content|striptags|truncatewords:40 }}</p>
+            <div class="article-meta">
+                <span><i class="fas fa-user"></i> {{ article.created_by.username }}</span>
+                <span><i class="fas fa-calendar"></i> {{ article.created_on|date:"Y-m-d" }}</span>
+                <span><i class="fas fa-eye"></i> {{ article.views }}</span>
+            </div>
+        </article>
+        {% empty %}
+        <div class="empty-state">
+            <i class="fas fa-search"></i>
+            <p>没有找到相关文章</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="search-hint">
+        <i class="fas fa-search"></i>
+        <p>输入关键词开始搜索</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.search-page {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.search-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.search-header h1 {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.search-form {
+    display: flex;
+    gap: 1rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.search-form input {
+    flex: 1;
+    padding: 0.75rem 1.5rem;
+    border: 2px solid #ecf0f1;
+    border-radius: 25px;
+    font-size: 1rem;
+}
+
+.filters {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.filters select {
+    padding: 0.5rem 1rem;
+    border: 2px solid #ecf0f1;
+    border-radius: 8px;
+    background: white;
+}
+
+.results-count {
+    color: #7f8c8d;
+    margin-bottom: 1.5rem;
+}
+
+.article-card {
+    margin-bottom: 1.5rem;
+}
+
+.article-title {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.article-title a {
+    color: #2c3e50;
+    text-decoration: none;
+}
+
+.article-title a:hover {
+    color: #3498db;
+}
+
+.article-excerpt {
+    color: #7f8c8d;
+    margin-bottom: 1rem;
+}
+
+.article-meta {
+    display: flex;
+    gap: 1rem;
+    color: #95a5a6;
+    font-size: 0.875rem;
+}
+
+.empty-state, .search-hint {
+    text-align: center;
+    padding: 3rem;
+    color: #95a5a6;
+}
+
+.empty-state i, .search-hint i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+</style>
+{% endblock %}

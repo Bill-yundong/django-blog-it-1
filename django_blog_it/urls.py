@@ -5,7 +5,11 @@ from .views import (dashboard, user_list, user_role,
                     blog_category_list, blog_catergory_edit,
                     blog_detail, page_detail,
                     blog_category_delete, blog_content_edit_with_grapejs,
-                    get_blog_content, blog_content_edit_with_ckeditor)
+                    get_blog_content, blog_content_edit_with_ckeditor, home,
+                    add_comment, delete_comment, get_comments,
+                    toggle_like, toggle_favorite, search_articles,
+                    user_profile, edit_profile, toggle_follow, article_detail,
+                    user_login, user_logout)
 
 from django_blog_it.sitemaps import sitemap_xml
 from django.conf.urls import url
@@ -13,6 +17,19 @@ from django.conf.urls import url
 app_name = "django_blog_it"
 
 urlpatterns = [
+    path('', home, name='home'),
+    path('login/', user_login, name='login'),
+    path('logout/', user_logout, name='logout'),
+    path('search/', search_articles, name='search'),
+    path('user/<str:username>/', user_profile, name='user_profile'),
+    path('profile/edit/', edit_profile, name='edit_profile'),
+    path('user/<str:username>/follow/', toggle_follow, name='toggle_follow'),
+    path('article/<slug:slug>/', article_detail, name='article_detail'),
+    path('article/<slug:slug>/comment/', add_comment, name='add_comment'),
+    path('article/<slug:slug>/comments/', get_comments, name='get_comments'),
+    path('article/<slug:slug>/favorite/', toggle_favorite, name='toggle_favorite'),
+    path('comment/<int:comment_id>/delete/', delete_comment, name='delete_comment'),
+    path('like/', toggle_like, name='toggle_like'),
     path('blog/admin/', dashboard, name='dashboard'),
     path('blog/admin/users/', user_list, name='user_list'),
     path('blog/admin/roles/', user_role, name='user_role'),

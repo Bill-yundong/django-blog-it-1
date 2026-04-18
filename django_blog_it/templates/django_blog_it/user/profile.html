@@ -1,0 +1,293 @@
+{% extends 'django_blog_it/base.html' %}
+
+{% block title %}{{ profile_user.username }}的个人主页 - Django Blog{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <div class="profile-header card">
+        <div class="profile-avatar">
+            {% if profile.avatar %}
+            <img src="{{ profile.avatar.url }}" alt="{{ profile_user.username }}">
+            {% else %}
+            <div class="avatar-placeholder">
+                <i class="fas fa-user"></i>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="profile-info">
+            <h1 class="profile-username">{{ profile_user.username }}</h1>
+            {% if profile.bio %}
+            <p class="profile-bio">{{ profile.bio }}</p>
+            {% endif %}
+            
+            <div class="profile-meta">
+                {% if profile.location %}
+                <span><i class="fas fa-map-marker-alt"></i> {{ profile.location }}</span>
+                {% endif %}
+                {% if profile.website %}
+                <span><a href="{{ profile.website }}" target="_blank"><i class="fas fa-link"></i> {{ profile.website }}</a></span>
+                {% endif %}
+                <span><i class="fas fa-calendar"></i> 加入于 {{ profile_user.date_joined|date:"Y年m月" }}</span>
+            </div>
+            
+            <div class="profile-stats">
+                <div class="stat">
+                    <span class="stat-value">{{ profile_user.articles.count }}</span>
+                    <span class="stat-label">文章</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value">{{ followers_count }}</span>
+                    <span class="stat-label">粉丝</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value">{{ following_count }}</span>
+                    <span class="stat-label">关注</span>
+                </div>
+            </div>
+            
+            {% if user.is_authenticated and user != profile_user %}
+            <button class="btn {% if is_following %}btn-outline{% else %}btn-primary{% endif %}" id="follow-btn">
+                {% if is_following %}取消关注{% else %}关注{% endif %}
+            </button>
+            {% endif %}
+            
+            {% if user == profile_user %}
+            <a href="{% url 'django_blog_it:edit_profile' %}" class="btn btn-outline">
+                <i class="fas fa-edit"></i> 编辑资料
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="profile-tabs">
+        <button class="tab-btn active" data-tab="articles">文章</button>
+        <button class="tab-btn" data-tab="favorites">收藏</button>
+    </div>
+    
+    <div class="tab-content active" id="articles">
+        {% for article in articles %}
+        <article class="article-card card">
+            <h3 class="article-title">
+                <a href="{% url 'django_blog_it:article_detail' slug=article.slug %}">
+                    {{ article.title }}
+                </a>
+            </h3>
+            <p class="article-excerpt">{{ article.content|striptags|truncatewords:40 }}</p>
+            <div class="article-meta">
+                <span><i class="fas fa-calendar"></i> {{ article.created_on|date:"Y-m-d" }}</span>
+                <span><i class="fas fa-eye"></i> {{ article.views }}</span>
+                <span><i class="fas fa-heart"></i> {{ article.likes_count }}</span>
+            </div>
+        </article>
+        {% empty %}
+        <div class="empty-state">
+            <i class="fas fa-file-alt"></i>
+            <p>暂无文章</p>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="tab-content" id="favorites">
+        {% for favorite in favorites %}
+        <article class="article-card card">
+            <h3 class="article-title">
+                <a href="{% url 'django_blog_it:article_detail' slug=favorite.article.slug %}">
+                    {{ favorite.article.title }}
+                </a>
+            </h3>
+            <p class="article-excerpt">{{ favorite.article.content|striptags|truncatewords:40 }}</p>
+            <div class="article-meta">
+                <span><i class="fas fa-user"></i> {{ favorite.article.created_by.username }}</span>
+                <span><i class="fas fa-calendar"></i> {{ favorite.created_at|date:"Y-m-d" }}</span>
+            </div>
+        </article>
+        {% empty %}
+        <div class="empty-state">
+            <i class="fas fa-star"></i>
+            <p>暂无收藏</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('.tab-btn').click(function() {
+        var tab = $(this).data('tab');
+        $('.tab-btn').removeClass('active');
+        $(this).addClass('active');
+        $('.tab-content').removeClass('active');
+        $('#' + tab).addClass('active');
+    });
+    
+    $('#follow-btn').click(function() {
+        var btn = $(this);
+        $.post('{% url "django_blog_it:toggle_follow" username=profile_user.username %}',
+            {csrfmiddlewaretoken: '{{ csrf_token }}'},
+            function(data) {
+                if(data.success) {
+                    if(data.following) {
+                        btn.removeClass('btn-primary').addClass('btn-outline').text('取消关注');
+                    } else {
+                        btn.removeClass('btn-outline').addClass('btn-primary').text('关注');
+                    }
+                    $('.stat-value').eq(1).text(data.followers_count);
+                }
+            }
+        );
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.profile-page {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.profile-header {
+    display: flex;
+    gap: 2rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.profile-avatar img, .avatar-placeholder {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.avatar-placeholder {
+    background: #ecf0f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    color: #95a5a6;
+}
+
+.profile-info {
+    flex: 1;
+}
+
+.profile-username {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.profile-bio {
+    color: #7f8c8d;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.profile-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    color: #95a5a6;
+    margin-bottom: 1.5rem;
+}
+
+.profile-meta a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+.profile-stats {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat {
+    text-align: center;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.stat-label {
+    color: #7f8c8d;
+    font-size: 0.875rem;
+}
+
+.profile-tabs {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.tab-btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.tab-btn.active {
+    background: #3498db;
+    color: white;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.article-card {
+    margin-bottom: 1.5rem;
+}
+
+.article-title {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.article-title a {
+    color: #2c3e50;
+    text-decoration: none;
+}
+
+.article-excerpt {
+    color: #7f8c8d;
+    margin-bottom: 1rem;
+}
+
+.article-meta {
+    display: flex;
+    gap: 1rem;
+    color: #95a5a6;
+    font-size: 0.875rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #95a5a6;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+</style>
+{% endblock %}
