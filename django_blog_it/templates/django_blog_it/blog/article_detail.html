@@ -118,6 +118,7 @@ $(document).ready(function() {
     $('#like-btn').click(function() {
         var btn = $(this);
         var articleId = btn.data('article-id');
+        btn.prop('disabled', true);
         $.post('{% url "django_blog_it:toggle_like" %}', 
             {article_id: articleId, csrfmiddlewaretoken: '{{ csrf_token }}'},
             function(data) {
@@ -125,22 +126,31 @@ $(document).ready(function() {
                     btn.toggleClass('liked', data.liked);
                     btn.find('span').text(data.likes_count);
                 }
+                btn.prop('disabled', false);
             }
-        );
+        ).fail(function() {
+            btn.prop('disabled', false);
+            alert('操作失败，请重试');
+        });
     });
     
     $('#favorite-btn').click(function() {
         var btn = $(this);
         var slug = btn.data('slug');
-        $.post('/article/' + slug + '/favorite/',
+        btn.prop('disabled', true);
+        $.post('{% url "django_blog_it:toggle_favorite" slug=article.slug %}',
             {csrfmiddlewaretoken: '{{ csrf_token }}'},
             function(data) {
                 if(data.success) {
                     btn.toggleClass('favorited', data.favorited);
                     btn.find('span').text(data.favorites_count);
                 }
+                btn.prop('disabled', false);
             }
-        );
+        ).fail(function() {
+            btn.prop('disabled', false);
+            alert('操作失败，请重试');
+        });
     });
     
     $('#comment-form').submit(function(e) {
@@ -155,23 +165,30 @@ $(document).ready(function() {
             function(data) {
                 if(data.success) {
                     textarea.val('');
+                    $('.section-title').text('评论 (' + data.comments_count + ')');
                     location.reload();
                 }
             }
-        );
+        ).fail(function() {
+            alert('评论发布失败，请重试');
+        });
     });
     
     $('.delete-comment-btn').click(function() {
         if(confirm('确定删除这条评论吗？')) {
-            var commentId = $(this).data('comment-id');
+            var btn = $(this);
+            var commentId = btn.data('comment-id');
             $.post('/comment/' + commentId + '/delete/',
                 {csrfmiddlewaretoken: '{{ csrf_token }}'},
                 function(data) {
                     if(data.success) {
+                        $('.section-title').text('评论 (' + data.comments_count + ')');
                         location.reload();
                     }
                 }
-            );
+            ).fail(function() {
+                alert('删除失败，请重试');
+            });
         }
     });
 });
@@ -253,10 +270,29 @@ $(document).ready(function() {
 .action-btn:hover, .action-btn.liked, .action-btn.favorited {
     border-color: #3498db;
     color: #3498db;
+    transform: scale(1.05);
 }
 
-.action-btn.liked i, .action-btn.favorited i {
+.action-btn:active {
+    transform: scale(0.95);
+}
+
+.action-btn.liked {
+    background: #fee;
+    border-color: #e74c3c;
+}
+
+.action-btn.liked i, .action-btn.liked span {
     color: #e74c3c;
+}
+
+.action-btn.favorited {
+    background: #fff8e1;
+    border-color: #f1c40f;
+}
+
+.action-btn.favorited i, .action-btn.favorited span {
+    color: #f39c12;
 }
 
 .comments-section {

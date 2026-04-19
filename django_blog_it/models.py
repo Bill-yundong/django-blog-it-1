@@ -199,6 +199,17 @@ class Comment(models.Model):
     def get_likes_count(self):
         return self.likes.count()
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.article.comments_count = self.article.comments.filter(parent=None).count()
+        self.article.save(update_fields=['comments_count'])
+
+    def delete(self, *args, **kwargs):
+        article = self.article
+        super().delete(*args, **kwargs)
+        article.comments_count = article.comments.filter(parent=None).count()
+        article.save(update_fields=['comments_count'])
+
 
 class Like(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='likes')

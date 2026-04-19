@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.db.models import Q, Count
 from django.views.decorators.http import require_POST, require_GET
+from django.views.decorators.cache import never_cache
 
 
 def required_roles(roles):
@@ -306,6 +307,7 @@ def blog_content_edit_with_ckeditor(request, pk):
         return JsonResponse({"redirect_url": url})
 
 
+@never_cache
 def home(request):
     articles = Article.objects.filter(is_page=False, status='Published').order_by('-created_on')
     categories = Category.objects.annotate(article_count=Count('article')).filter(article_count__gt=0)
@@ -318,7 +320,11 @@ def home(request):
         'tags': tags,
         'popular_articles': popular_articles,
     }
-    return render(request, 'django_blog_it/blog/blog_list.html', context)
+    response = render(request, 'django_blog_it/blog/blog_list.html', context)
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 
 @login_required
@@ -342,16 +348,14 @@ def add_comment(request, slug):
         parent=parent_comment
     )
     
-    article.comments_count = article.comments.count()
-    article.save(update_fields=['comments_count'])
-    
     return JsonResponse({
         'success': True,
         'comment_id': comment.id,
         'user': request.user.username,
         'content': content,
         'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M'),
-        'parent_id': parent_id
+        'parent_id': parent_id,
+        'comments_count': article.comments_count
     })
 
 
@@ -362,10 +366,11 @@ def delete_comment(request, comment_id):
     article = comment.article
     comment.delete()
     
-    article.comments_count = article.comments.count()
-    article.save(update_fields=['comments_count'])
-    
-    return JsonResponse({'success': True})
+    article.refresh_from_db()
+    return JsonResponse({
+        'success': True,
+        'comments_count': article.comments_count
+    })
 
 
 @require_GET
@@ -412,6 +417,7 @@ def toggle_like(request):
         else:
             liked = True
         
+        article.refresh_from_db()
         return JsonResponse({
             'success': True,
             'liked': liked,
@@ -428,6 +434,7 @@ def toggle_like(request):
         else:
             liked = True
         
+        comment.refresh_from_db()
         return JsonResponse({
             'success': True,
             'liked': liked,
@@ -449,6 +456,7 @@ def toggle_favorite(request, slug):
     else:
         favorited = True
     
+    article.refresh_from_db()
     return JsonResponse({
         'success': True,
         'favorited': favorited,
@@ -555,6 +563,7 @@ def toggle_follow(request, username):
     })
 
 
+@never_cache
 def article_detail(request, slug):
     article = get_object_or_404(Article, slug=slug, is_page=False, status='Published')
     article.increase_views()
@@ -581,7 +590,11 @@ def article_detail(request, slug):
         'is_favorited': is_favorited,
         'related_articles': related_articles,
     }
-    return render(request, 'django_blog_it/blog/article_detail.html', context)
+    response = render(request, 'django_blog_it/blog/article_detail.html', context)
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
