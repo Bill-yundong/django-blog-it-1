@@ -118,26 +118,46 @@ $(document).ready(function() {
     $('#like-btn').click(function() {
         var btn = $(this);
         var articleId = btn.data('article-id');
-        $.post('{% url "django_blog_it:toggle_like" %}', 
+        var currentCount = parseInt(btn.find('span').text()) || 0;
+
+        $.post('{% url "django_blog_it:toggle_like" %}',
             {article_id: articleId, csrfmiddlewaretoken: '{{ csrf_token }}'},
             function(data) {
                 if(data.success) {
                     btn.toggleClass('liked', data.liked);
                     btn.find('span').text(data.likes_count);
+
+                    // 添加视觉反馈
+                    if(data.liked) {
+                        btn.css('transform', 'scale(1.1)');
+                        setTimeout(function() {
+                            btn.css('transform', 'scale(1)');
+                        }, 200);
+                    }
                 }
             }
         );
     });
-    
+
     $('#favorite-btn').click(function() {
         var btn = $(this);
         var slug = btn.data('slug');
+        var currentCount = parseInt(btn.find('span').text()) || 0;
+
         $.post('/article/' + slug + '/favorite/',
             {csrfmiddlewaretoken: '{{ csrf_token }}'},
             function(data) {
                 if(data.success) {
                     btn.toggleClass('favorited', data.favorited);
                     btn.find('span').text(data.favorites_count);
+
+                    // 添加视觉反馈
+                    if(data.favorited) {
+                        btn.css('transform', 'scale(1.1) rotate(10deg)');
+                        setTimeout(function() {
+                            btn.css('transform', 'scale(1) rotate(0deg)');
+                        }, 200);
+                    }
                 }
             }
         );
@@ -248,15 +268,51 @@ $(document).ready(function() {
     border-radius: 25px;
     cursor: pointer;
     transition: all 0.3s;
+    font-size: 0.875rem;
+    font-weight: 500;
 }
 
-.action-btn:hover, .action-btn.liked, .action-btn.favorited {
+.action-btn:hover {
     border-color: #3498db;
     color: #3498db;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.2);
 }
 
-.action-btn.liked i, .action-btn.favorited i {
+.action-btn.liked {
+    border-color: #e74c3c;
+    background: #fdf2f2;
     color: #e74c3c;
+}
+
+.action-btn.liked i {
+    color: #e74c3c;
+    animation: heartBeat 0.5s ease;
+}
+
+.action-btn.favorited {
+    border-color: #f39c12;
+    background: #fef9e7;
+    color: #f39c12;
+}
+
+.action-btn.favorited i {
+    color: #f39c12;
+    animation: starPulse 0.5s ease;
+}
+
+@keyframes heartBeat {
+    0% { transform: scale(1); }
+    25% { transform: scale(1.3); }
+    50% { transform: scale(1); }
+    75% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+
+@keyframes starPulse {
+    0% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.3) rotate(180deg); }
+    100% { transform: scale(1) rotate(360deg); }
 }
 
 .comments-section {

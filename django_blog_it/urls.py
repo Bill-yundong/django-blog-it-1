@@ -9,7 +9,7 @@ from .views import (dashboard, user_list, user_role,
                     add_comment, delete_comment, get_comments,
                     toggle_like, toggle_favorite, search_articles,
                     user_profile, edit_profile, toggle_follow, article_detail,
-                    user_login, user_logout)
+                    user_login, user_logout, article_stats)
 
 from django_blog_it.sitemaps import sitemap_xml
 from django.conf.urls import url
@@ -28,6 +28,7 @@ urlpatterns = [
     path('article/<slug:slug>/comment/', add_comment, name='add_comment'),
     path('article/<slug:slug>/comments/', get_comments, name='get_comments'),
     path('article/<slug:slug>/favorite/', toggle_favorite, name='toggle_favorite'),
+    path('article/<slug:slug>/stats/', article_stats, name='article_stats'),
     path('comment/<int:comment_id>/delete/', delete_comment, name='delete_comment'),
     path('like/', toggle_like, name='toggle_like'),
     path('blog/admin/', dashboard, name='dashboard'),

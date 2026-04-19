@@ -316,10 +316,83 @@
         .home-layout {
             grid-template-columns: 1fr;
         }
-        
+
         .sidebar {
             order: -1;
         }
     }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    function refreshArticleStats() {
+        $('.article-card').each(function() {
+            var card = $(this);
+            var articleLink = card.find('.article-title a').attr('href');
+            if (articleLink) {
+                var slug = articleLink.split('/').filter(Boolean).pop();
+                var viewsEl = card.find('.article-stats span').eq(0);
+                var likesEl = card.find('.article-stats span').eq(1);
+                var commentsEl = card.find('.article-stats span').eq(2);
+
+                var oldViews = parseInt(viewsEl.text()) || 0;
+                var oldLikes = parseInt(likesEl.text()) || 0;
+                var oldComments = parseInt(commentsEl.text()) || 0;
+
+                $.get('/article/' + slug + '/stats/', function(data) {
+                    if (data.success) {
+                        // 更新阅读量
+                        if (data.views !== oldViews) {
+                            viewsEl.html('<i class="fas fa-eye"></i> ' + data.views);
+                            viewsEl.addClass('stat-updated');
+                        }
+                        // 更新喜欢数
+                        if (data.likes_count !== oldLikes) {
+                            likesEl.html('<i class="fas fa-heart"></i> ' + data.likes_count);
+                            likesEl.addClass('stat-updated');
+                        }
+                        // 更新评论数
+                        if (data.comments_count !== oldComments) {
+                            commentsEl.html('<i class="fas fa-comment"></i> ' + data.comments_count);
+                            commentsEl.addClass('stat-updated');
+                        }
+
+                        // 移除高亮效果
+                        setTimeout(function() {
+                            card.find('.stat-updated').removeClass('stat-updated');
+                        }, 1000);
+                    }
+                });
+            }
+        });
+    }
+
+    // 页面显示时刷新（包括从浏览器缓存恢复）
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+            refreshArticleStats();
+        }
+    });
+
+    // 从详情页返回时刷新
+    if (window.performance && window.performance.navigation.type === 2) {
+        refreshArticleStats();
+    }
+
+    // 页面获得焦点时刷新（切换回页面时）
+    $(window).on('focus', function() {
+        refreshArticleStats();
+    });
+});
+</script>
+
+<style>
+.stat-updated {
+    color: #3498db !important;
+    font-weight: 600;
+    transition: all 0.5s ease;
+}
 </style>
 {% endblock %}
