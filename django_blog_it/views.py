@@ -342,7 +342,7 @@ def add_comment(request, slug):
         parent=parent_comment
     )
     
-    article.comments_count = article.comments.count()
+    article.comments_count = article.comments.filter(parent=None, is_active=True).count()
     article.save(update_fields=['comments_count'])
     
     return JsonResponse({
@@ -362,7 +362,7 @@ def delete_comment(request, comment_id):
     article = comment.article
     comment.delete()
     
-    article.comments_count = article.comments.count()
+    article.comments_count = article.comments.filter(parent=None, is_active=True).count()
     article.save(update_fields=['comments_count'])
     
     return JsonResponse({'success': True})
@@ -412,6 +412,8 @@ def toggle_like(request):
         else:
             liked = True
         
+        article.refresh_from_db()
+        
         return JsonResponse({
             'success': True,
             'liked': liked,
@@ -427,6 +429,8 @@ def toggle_like(request):
             liked = False
         else:
             liked = True
+        
+        comment.refresh_from_db()
         
         return JsonResponse({
             'success': True,
@@ -448,6 +452,8 @@ def toggle_favorite(request, slug):
         favorited = False
     else:
         favorited = True
+    
+    article.refresh_from_db()
     
     return JsonResponse({
         'success': True,
@@ -560,6 +566,11 @@ def article_detail(request, slug):
     article.increase_views()
     
     comments = article.comments.filter(parent=None, is_active=True).order_by('-created_at')
+    
+    actual_comments_count = comments.count()
+    if article.comments_count != actual_comments_count:
+        article.comments_count = actual_comments_count
+        article.save(update_fields=['comments_count'])
     
     is_liked = False
     is_favorited = False
