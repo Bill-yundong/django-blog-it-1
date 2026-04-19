@@ -146,13 +146,15 @@ $(document).ready(function() {
     $('#comment-form').submit(function(e) {
         e.preventDefault();
         var form = $(this);
-        var content = form.find('textarea[name="content"]').val();
+        var textarea = form.find('textarea[name="content"]');
+        var content = textarea.val();
         if(!content.trim()) return;
         
         $.post(window.location.pathname + 'comment/',
             form.serialize(),
             function(data) {
                 if(data.success) {
+                    textarea.val('');
                     location.reload();
                 }
             }
