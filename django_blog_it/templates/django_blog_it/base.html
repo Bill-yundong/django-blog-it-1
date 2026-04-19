@@ -243,7 +243,7 @@
                 {% endfor %}
             {% endif %}
             
-            {{ content_placeholder }}
+            {% block content %}{% endblock %}
         </div>
     </main>
     
@@ -261,6 +261,6 @@
     </footer>
     
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    {{ extra_js_placeholder }}
+    {% block extra_js %}{% endblock %}
 </body>
 </html>
