@@ -43,31 +43,38 @@ if not categories:
 # 创建文章
 base_titles = [
     'Introduction to Django Framework',
-    'Python Programming Tips',
-    'Vue.js for Beginners',
-    'Database Optimization Guide',
-    'My Programming Story',
+    'Python Programming Best Practices',
+    'Getting Started with Vue.js 3',
+    'Database Optimization Techniques',
+    'My Journey as a Developer',
+    'Building REST APIs with Django',
+    'JavaScript ES6+ Features',
+    'Docker for Developers',
+    'Machine Learning Basics',
+    'Web Security Essentials',
+    'CSS Grid Layout Guide',
+    'Git Workflow Tips'
 ]
 
 for i, base_title in enumerate(base_titles):
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    unique_title = f'{base_title} {timestamp}{i}'
-    slug = slugify(unique_title)
+    unique_title = f'{base_title}'
+    slug = slugify(f'{unique_title}-{timestamp}-{i}')
     
     try:
         article = Article.objects.create(
             title=unique_title,
             slug=slug,
-            content=f'<h2>{base_title}</h2><p>This is a sample article about {base_title.lower()}.</p>',
-            category=categories[0] if i < 4 else (categories[1] if len(categories) > 1 else categories[0]),
+            content=f'<h2>{base_title}</h2><p>This is a comprehensive sample article about {base_title.lower()}.</p><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p><p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>',
+            category=categories[0] if i < 8 else (categories[1] if len(categories) > 1 else categories[0]),
             status='Published',
             publish_on=datetime.now().date() - timedelta(days=i),
             created_by=admin_user,
-            views=100 + i * 10,
-            likes_count=10 + i,
+            views=100 + i * 15,
+            likes_count=10 + i * 2,
             comments_count=2 + i
         )
-        article.tags.set([tags[i % len(tags)]])
+        article.tags.set(tags[i:i+2] if i+2 < len(tags) else tags[-2:])
         print(f'创建文章: {article.title}')
     except Exception as e:
         print(f'创建文章失败 {unique_title}: {e}')
