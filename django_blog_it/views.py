@@ -311,14 +311,18 @@ def home(request):
     categories = Category.objects.annotate(article_count=Count('article')).filter(article_count__gt=0)
     tags = Tag.objects.annotate(article_count=Count('related_posts')).filter(article_count__gt=0)
     popular_articles = Article.objects.filter(is_page=False, status='Published').order_by('-views')[:5]
-    
+
     context = {
         'articles': articles,
         'categories': categories,
         'tags': tags,
         'popular_articles': popular_articles,
     }
-    return render(request, 'django_blog_it/blog/blog_list.html', context)
+    response = render(request, 'django_blog_it/blog/blog_list.html', context)
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 
 @login_required
@@ -327,24 +331,24 @@ def add_comment(request, slug):
     article = get_object_or_404(Article, slug=slug)
     content = request.POST.get('content')
     parent_id = request.POST.get('parent_id')
-    
+
     if not content:
         return JsonResponse({'success': False, 'error': 'Content is required'})
-    
+
     parent_comment = None
     if parent_id:
         parent_comment = get_object_or_404(Comment, id=parent_id)
-    
+
     comment = Comment.objects.create(
         article=article,
         user=request.user,
         content=content,
         parent=parent_comment
     )
-    
-    article.comments_count = article.comments.count()
+
+    article.comments_count = article.comments.filter(parent=None, is_active=True).count()
     article.save(update_fields=['comments_count'])
-    
+
     return JsonResponse({
         'success': True,
         'comment_id': comment.id,
@@ -361,10 +365,10 @@ def delete_comment(request, comment_id):
     comment = get_object_or_404(Comment, id=comment_id, user=request.user)
     article = comment.article
     comment.delete()
-    
-    article.comments_count = article.comments.count()
+
+    article.comments_count = article.comments.filter(parent=None, is_active=True).count()
     article.save(update_fields=['comments_count'])
-    
+
     return JsonResponse({'success': True})
 
 
@@ -558,22 +562,22 @@ def toggle_follow(request, username):
 def article_detail(request, slug):
     article = get_object_or_404(Article, slug=slug, is_page=False, status='Published')
     article.increase_views()
-    
+
     comments = article.comments.filter(parent=None, is_active=True).order_by('-created_at')
-    
+
     is_liked = False
     is_favorited = False
-    
+
     if request.user.is_authenticated:
         is_liked = Like.objects.filter(user=request.user, article=article).exists()
         is_favorited = Favorite.objects.filter(user=request.user, article=article).exists()
-    
+
     related_articles = Article.objects.filter(
         category=article.category,
         status='Published',
         is_page=False
     ).exclude(id=article.id)[:3]
-    
+
     context = {
         'article': article,
         'comments': comments,
@@ -581,7 +585,22 @@ def article_detail(request, slug):
         'is_favorited': is_favorited,
         'related_articles': related_articles,
     }
-    return render(request, 'django_blog_it/blog/article_detail.html', context)
+    response = render(request, 'django_blog_it/blog/article_detail.html', context)
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
+
+
+@require_GET
+def article_stats(request, slug):
+    article = get_object_or_404(Article, slug=slug)
+    return JsonResponse({
+        'success': True,
+        'views': article.views,
+        'likes_count': article.likes_count,
+        'comments_count': article.comments_count
+    })
 
 
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
